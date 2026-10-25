@@ -46,6 +46,9 @@ export default function RestaurantPage() {
   // receives the chosen key, whitelists it, and returns the rows in order.
   // The frontend never calls .sort().
   const [sort, setSort] = useState<SortKey>("newest");
+  // Star filter is independent of sort: both are query params the backend
+  // validates and computes, never client-side logic.
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const hasLoadedRef = useRef(false);
   const [state, setState] = useState<
@@ -59,7 +62,8 @@ export default function RestaurantPage() {
     // A ref, not state, so switching sort preserves data while refetching
     // without putting state.phase into the dependency contract.
     if (hasLoadedRef.current) setRefreshing(true);
-    fetch(`/api/restaurants/${id}?sort=${sort}`)
+    const ratingParam = ratingFilter !== null ? `&rating=${ratingFilter}` : "";
+    fetch(`/api/restaurants/${id}?sort=${sort}${ratingParam}`)
       .then(async (response) => {
         const body = await response.json();
         if (!alive) return;
@@ -77,7 +81,7 @@ export default function RestaurantPage() {
     return () => {
       alive = false;
     };
-  }, [id, sort]);
+  }, [id, sort, ratingFilter]);
 
   const readableDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", {
@@ -214,8 +218,63 @@ export default function RestaurantPage() {
             {/* Older reviews — plain feed, the API already excluded the latest */}
             {/* Sort chips — the backend does the ordering; buttons only ask */}
             {data.totalReviews > 0 && (
-              <section aria-label="All reviews" className="mt-10">
-                <h2 className="text-lg font-semibold tracking-tight">All reviews</h2>
+              <section aria-label="Reviews" className="mt-10">
+                <h2 className="text-lg font-semibold tracking-tight">Reviews</h2>
+
+                {/* Rating snapshot — the counts and bar widths arrive
+                    pre-computed from the backend; rows filter the feed. */}
+                <div className="mt-3 rounded-2xl border border-hairline bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                  <p className="text-sm font-semibold text-foreground">
+                    Rating snapshot
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    Select a star below to filter these reviews.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-2">
+                    {data.ratingSnapshot.map((row) => {
+                      const selected = ratingFilter === row.rating;
+                      return (
+                        <button
+                          key={row.rating}
+                          type="button"
+                          aria-pressed={selected}
+                          aria-label={`Filter to ${row.rating}-star reviews`}
+                          onClick={() =>
+                            setRatingFilter(selected ? null : row.rating)
+                          }
+                          className={`flex items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent hover:bg-neutral-50 ${
+                            selected ? "bg-neutral-100" : ""
+                          }`}
+                        >
+                          <span className="w-8 shrink-0 text-xs font-medium text-foreground">
+                            {row.rating}
+                            <span aria-hidden="true" className="text-accent">
+                              ★
+                            </span>
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-neutral-200"
+                          >
+                            <span
+                              className="absolute inset-y-0 left-0 rounded-full bg-accent"
+                              style={{ width: `${row.percentage}%` }}
+                            />
+                          </span>
+                          <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted">
+                            {row.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {ratingFilter !== null && (
+                    <p className="mt-3 text-xs font-medium text-accent">
+                      Showing {ratingFilter}-star reviews only — tap again to clear.
+                    </p>
+                  )}
+                </div>
+
                 <div role="group" aria-label="Sort reviews" className="mt-3 flex flex-wrap gap-2">
                   {SORT_LABELS.map(({ key, label }) => {
                     const active = sort === key;
@@ -236,6 +295,12 @@ export default function RestaurantPage() {
                     );
                   })}
                 </div>
+
+                {data.reviews.length === 0 && (
+                  <p className="mt-5 text-sm text-muted">
+                    No reviews with that star rating yet.
+                  </p>
+                )}
 
                 {data.reviews.length > 0 && (
                   <ul

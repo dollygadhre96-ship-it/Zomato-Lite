@@ -9,6 +9,14 @@ export type Review = {
   createdAt: string;
 };
 
+// One horizontal bar of the rating snapshot. count/percentage are computed
+// by the backend (answers, not facts); the frontend only prints.
+export type RatingSnapshotRow = {
+  rating: number;
+  count: number;
+  percentage: number;
+};
+
 export type RestaurantResponse = {
   name: string;
   cuisine: string;
@@ -17,4 +25,5 @@ export type RestaurantResponse = {
   totalReviews: number;
   latestReview: Review | null;
   reviews: Review[];
+  ratingSnapshot: RatingSnapshotRow[];
 };

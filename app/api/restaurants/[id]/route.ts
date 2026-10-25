@@ -39,6 +39,21 @@ export async function GET(
     );
   }
 
+  // Optional star filter (?rating=4). Same contract discipline as every input:
+  // validated server-side, never trusted from the click it came from.
+  const ratingParam = request.nextUrl.searchParams.get("rating");
+  let ratingFilter: number | null = null;
+  if (ratingParam !== null && ratingParam !== "") {
+    const n = Number(ratingParam);
+    if (!Number.isInteger(n) || n < 1 || n > 5) {
+      return NextResponse.json(
+        { error: "Rating filter must be a whole number from 1 to 5." },
+        { status: 400 }
+      );
+    }
+    ratingFilter = n;
+  }
+
   // Fact lookup.
   const restaurants = await sql.query(
     "SELECT id, name, cuisine, area FROM restaurants WHERE id = $1",
@@ -58,6 +73,24 @@ export async function GET(
   const avg = aggregates[0].average;                 // AVG(rating)
   const averageRating = avg === null ? null : Math.round(avg * 10) / 10;
 
+  // Rating snapshot — the breakdown is a set of computed ANSWERS, so the
+  // backend does the counting (GROUP BY) and the bar percentages. The
+  // frontend receives "count 3, width 40%" and prints.
+  const snapshotRaw = (await sql.query(
+    "SELECT rating::int AS rating, COUNT(*)::int AS count FROM reviews WHERE restaurant_id = $1 GROUP BY rating",
+    [restaurantId]
+  )) as unknown as { rating: number; count: number }[];
+  const ratingSnapshot = [5, 4, 3, 2, 1].map((r) => {
+    const row = snapshotRaw.find((x) => x.rating === r);
+    const count = row ? row.count : 0;
+    return {
+      rating: r,
+      count,
+      percentage:
+        totalReviews > 0 ? Math.round((count * 100) / totalReviews) : 0,
+    };
+  });
+
   // The feed is a COMPLETE list under every sort. The highlighted card above
   // it is a spotlight on the newest review, not a replacement for it.
   const latestRaw = (
@@ -66,11 +99,19 @@ export async function GET(
       [restaurantId]
     )
   ) as unknown as { id: number; rating: number; comment: string; created_at: Date }[];
+
+  // Feed list: respect BOTH the sort (whitelisted above) and, when present,
+  // the star filter. Parameters stay in $n placeholders — values only.
+  const listValues: number[] = [restaurantId];
+  let listQuery =
+    "SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1";
+  if (ratingFilter !== null) {
+    listQuery += " AND rating = $2";
+    listValues.push(ratingFilter);
+  }
+  listQuery += ` ORDER BY ${orderBy}`;
   const restRaw = (
-    await sql.query(
-      `SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1 ORDER BY ${orderBy}`,
-      [restaurantId]
-    )
+    await sql.query(listQuery, listValues)
   ) as unknown as { id: number; rating: number; comment: string; created_at: Date }[];
 
   const toReview = (r: { id: number; rating: number; comment: string; created_at: Date }) => ({
@@ -92,5 +133,6 @@ export async function GET(
     totalReviews,
     latestReview,
     reviews: restRaw.map(toReview),
+    ratingSnapshot,
   });
 }
