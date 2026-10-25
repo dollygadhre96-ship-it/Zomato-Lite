@@ -1,11 +1,16 @@
 "use client";
 
-// Screen 1 — write a review. The star picker limits the user to 1–5 as kindness.
-// The backend re-checks it as security. This screen never decides anything:
-// on a 400 it prints the backend's own sentence, verbatim, never its own.
+// Screen 1 — write a review.
+// The star picker limiting 1–5 is kindness; the backend re-checking is security.
+// On a 400 this screen prints the backend's own sentence, verbatim — never its own.
+// Data flows only through /api/*; nothing here invents content.
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import SmartImage from "@/components/SmartImage";
+
+const REVIEW_PAGE_THUMB =
+  "https://images.unsplash.com/photo-1566740933430-b5e70b06d2d5?w=240&h=240&fit=crop&auto=format&q=80";
 
 export default function ReviewPage() {
   const params = useParams<{ restaurantId: string }>();
@@ -64,77 +69,89 @@ export default function ReviewPage() {
   };
 
   return (
-    <main className="mx-auto max-w-[640px] min-h-screen px-5 pb-16 pt-12 sm:px-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1c1c1c] sm:text-[32px]">
-          {restaurantName ?? "Loading…"}
-        </h1>
-        <p className="mt-1.5 text-sm text-[#8f8f8f]">Write a review</p>
-      </header>
-
-      <section className="mt-10">
-        <h2 className="mb-3 text-sm font-semibold text-[#1c1c1c]">Your rating</h2>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              aria-label={`Rate ${star} ${star === 1 ? "star" : "stars"}`}
-              aria-pressed={rating !== null && star <= rating}
-              onClick={() => pickStar(star)}
-              className={`rounded-md px-1 text-[32px] leading-none outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#e23744]/40 ${
-                rating !== null && star <= rating
-                  ? "text-[#e23744]"
-                  : "text-[#dcdcdc] hover:text-[#eab0b5]"
-              }`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-        <p className="mt-2 text-sm text-[#8f8f8f]">
-          {rating === null
-            ? "Tap a star"
-            : `${rating} out of 5`}
-        </p>
-      </section>
-
-      <section className="mt-10">
-        <h2 className="mb-3 text-sm font-semibold text-[#1c1c1c]">Your comment</h2>
-        <textarea
-          value={comment}
-          onChange={(event) => setComment(event.target.value)}
-          placeholder="What did you think?"
-          className="w-full min-h-[130px] resize-none rounded-xl border border-[#e9e9e9] bg-white p-4 text-[15px] leading-relaxed text-[#1c1c1c] outline-none placeholder:text-[#bcbcbc] focus:border-[#e23744]"
-        />
-      </section>
-
-      {error && (
-        <p
-          role="alert"
-          className="mt-6 rounded-xl border border-[#fbd3d6] bg-[#fff7f7] px-4 py-3 text-sm text-[#1c1c1c]"
-        >
-          {error}
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={submit}
-        disabled={!canSubmit}
-        className="mt-8 w-full rounded-lg bg-[#e23744] py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-[#c92734] disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {submitting ? "Submitting…" : "Submit review"}
-      </button>
-
-      <p className="mt-6 text-center">
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-[560px] px-4 pb-16 sm:px-6">
         <Link
           href={`/restaurant/${id}`}
-          className="text-sm text-[#8f8f8f] underline-offset-4 hover:text-[#1c1c1c] hover:underline"
+          className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          ← Back to reviews
+          <span aria-hidden="true">←</span> Back to restaurant
         </Link>
-      </p>
+
+        {/* Restaurant identity — name from the API, thumbnail decorative */}
+        <header className="mt-5 flex items-center gap-4">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-hairline bg-neutral-100">
+            <SmartImage
+              src={REVIEW_PAGE_THUMB}
+              alt=""
+              sizes="56px"
+              className="object-cover"
+            />
+          </div>
+          <div>
+            <h1 className="text-[22px] font-semibold leading-tight tracking-tight">
+              {restaurantName ?? "Loading…"}
+            </h1>
+            <p className="mt-0.5 text-sm text-muted">Write a review</p>
+          </div>
+        </header>
+
+        {/* Star picker — kindness here; the real gatekeepers live in the backend */}
+        <section className="mt-10">
+          <h2 className="mb-3 text-sm font-medium text-foreground">Your rating</h2>
+          <div role="radiogroup" aria-label="Your rating" className="flex gap-1.5">
+            {[1, 2, 3, 4, 5].map((star) => {
+              const selected = rating !== null && rating >= star;
+              return (
+                <button
+                  key={star}
+                  type="button"
+                  role="radio"
+                  aria-checked={rating === star}
+                  aria-label={`${star} ${star === 1 ? "star" : "stars"}`}
+                  onClick={() => pickStar(star)}
+                  className={`rounded-md px-1 text-4xl leading-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                    selected
+                      ? "text-accent"
+                      : "text-neutral-300 hover:text-accent/70"
+                  }`}
+                >
+                  ★
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Comment box */}
+        <section className="mt-10">
+          <h2 className="mb-3 text-sm font-medium text-foreground">Your comment</h2>
+          <textarea
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            placeholder="What did you think?"
+            className="min-h-[130px] w-full resize-none rounded-2xl border border-hairline bg-white p-4 text-[15px] leading-relaxed text-foreground outline-none transition-colors placeholder:text-neutral-400 focus:border-accent focus:ring-4 focus:ring-accent/10"
+          />
+        </section>
+
+        {error && (
+          <p
+            role="alert"
+            className="mt-6 rounded-xl border border-accent/30 bg-accent/5 px-4 py-3 text-sm text-foreground"
+          >
+            {error}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!canSubmit}
+          className="mt-8 h-12 w-full rounded-full bg-accent text-[15px] font-semibold text-white transition-colors hover:bg-[#c92f3b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-accent"
+        >
+          {submitting ? "Submitting…" : "Submit review"}
+        </button>
+      </div>
     </main>
   );
 }
