@@ -237,12 +237,6 @@ export default function RestaurantPage() {
                   })}
                 </div>
 
-                {data.reviews.length === 0 && (
-                  <p className="mt-5 text-sm text-muted">
-                    That&apos;s all {data.totalReviews} {data.totalReviews === 1 ? "review" : "reviews"} — it&apos;s featured above.
-                  </p>
-                )}
-
                 {data.reviews.length > 0 && (
                   <ul
                     aria-busy={refreshing}

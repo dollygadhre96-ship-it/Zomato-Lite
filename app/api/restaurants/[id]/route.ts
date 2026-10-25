@@ -58,8 +58,8 @@ export async function GET(
   const avg = aggregates[0].average;                 // AVG(rating)
   const averageRating = avg === null ? null : Math.round(avg * 10) / 10;
 
-  // Latest is always NEWEST-FIRST, recency is the page's headline and does
-  // not move when the feed is sorted differently.
+  // The feed is a COMPLETE list under every sort. The highlighted card above
+  // it is a spotlight on the newest review, not a replacement for it.
   const latestRaw = (
     await sql.query(
       "SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1 ORDER BY created_at DESC LIMIT 1",
@@ -68,9 +68,7 @@ export async function GET(
   ) as unknown as { id: number; rating: number; comment: string; created_at: Date }[];
   const restRaw = (
     await sql.query(
-      // When the feed is sorted newest-first, row #1 is already featured in
-      // the highlighted card, so skip it. Every other sort keeps the full list.
-      `SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1 ORDER BY ${orderBy}${sortParam === "newest" ? " OFFSET 1" : ""}`,
+      `SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1 ORDER BY ${orderBy}`,
       [restaurantId]
     )
   ) as unknown as { id: number; rating: number; comment: string; created_at: Date }[];
