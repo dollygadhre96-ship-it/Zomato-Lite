@@ -38,15 +38,6 @@ export async function GET(
   const avg = aggregates[0].average;                 // AVG(rating)
   const averageRating = avg === null ? null : Math.round(avg * 10) / 10;
 
-  const latestRows = await sql.query(
-    "SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1 ORDER BY created_at DESC LIMIT 1",
-    [restaurantId]
-  );
-  const restRows = await sql.query(
-    "SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1 ORDER BY created_at DESC OFFSET 1",
-    [restaurantId]
-  );
-
   const toReview = (r: { id: number; rating: number; comment: string; created_at: Date }) => ({
     id: r.id,
     rating: r.rating,
@@ -54,11 +45,23 @@ export async function GET(
     createdAt: r.created_at.toISOString(),
   });
 
+  // The database returns rows shaped like DbReview. The library types them loosely
+  // (Record<string, any>), so this cast marks the exact boundary where we promise it.
+  type DbReview = { id: number; rating: number; comment: string; created_at: Date };
+  const latestRaw = await sql.query(
+    "SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1 ORDER BY created_at DESC LIMIT 1",
+    [restaurantId]
+  ) as unknown as DbReview[];
+  const restRaw = await sql.query(
+    "SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1 ORDER BY created_at DESC OFFSET 1",
+    [restaurantId]
+  ) as unknown as DbReview[];
+
   // Empty-state policy, said out loud:
   // No reviews yet means we have NO answers yet — so averageRating is null (nothing
   // meaningful to show), totalReviews is 0, and both lists are empty. The screen shows
   // an empty state inviting the first review instead of making up a number.
-  const latestReview = latestRows.length > 0 ? toReview(latestRows[0]) : null;
+  const latestReview = latestRaw.length > 0 ? toReview(latestRaw[0]) : null;
 
   return NextResponse.json({
     name: restaurant.name,
@@ -67,6 +70,6 @@ export async function GET(
     averageRating,
     totalReviews,
     latestReview,
-    reviews: restRows.map(toReview),
+    reviews: restRaw.map(toReview),
   });
 }
