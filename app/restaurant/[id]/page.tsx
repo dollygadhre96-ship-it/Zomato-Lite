@@ -139,11 +139,14 @@ export default function RestaurantPage() {
 
         {hasReviews ? (
           <>
-            {/* Rating summary — the number is printed exactly as received */}
+            {/* Rating summary — the number is printed exactly as received, "/5" is a literal */}
             <section aria-label="Rating summary" className="mt-8 flex items-end gap-4">
-              <span className="text-6xl font-bold leading-none tracking-tight">
-                {data.averageRating}
-              </span>
+              <div className="flex items-baseline">
+                <span className="text-6xl font-bold leading-none tracking-tight">
+                  {data.averageRating}
+                </span>
+                <span className="ml-0.5 text-2xl font-medium text-muted">/5</span>
+              </div>
               <div className="pb-0.5">
                 <Stars rating={data.averageRating} />
                 <p className="mt-1.5 text-xs text-muted">
