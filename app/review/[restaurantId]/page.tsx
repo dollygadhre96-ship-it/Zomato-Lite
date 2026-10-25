@@ -5,6 +5,7 @@
 // on a 400 it prints the backend's own sentence, verbatim, never its own.
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function ReviewPage() {
   const params = useParams<{ restaurantId: string }>();
@@ -63,46 +64,56 @@ export default function ReviewPage() {
   };
 
   return (
-    <main className="mx-auto max-w-[560px] min-h-screen px-6 py-14">
-      <h1 className="text-2xl font-semibold tracking-tight text-[#1a1917]">
-        {restaurantName ?? "Loading…"}
-      </h1>
-      <p className="mt-1 text-sm text-[#8a8378]">Write a review</p>
+    <main className="mx-auto max-w-[640px] min-h-screen px-5 pb-16 pt-12 sm:px-6">
+      <header>
+        <h1 className="text-3xl font-bold tracking-tight text-[#1c1c1c] sm:text-[32px]">
+          {restaurantName ?? "Loading…"}
+        </h1>
+        <p className="mt-1.5 text-sm text-[#8f8f8f]">Write a review</p>
+      </header>
 
       <section className="mt-10">
-        <h2 className="mb-3 text-sm font-medium text-[#1a1917]">Your rating</h2>
-        <div className="flex gap-2">
+        <h2 className="mb-3 text-sm font-semibold text-[#1c1c1c]">Your rating</h2>
+        <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((star) => (
             <button
               key={star}
               type="button"
               aria-label={`Rate ${star} ${star === 1 ? "star" : "stars"}`}
-              aria-pressed={rating !== null && rating >= star}
+              aria-pressed={rating !== null && star <= rating}
               onClick={() => pickStar(star)}
-              className={`text-3xl leading-none transition-colors rounded-md px-0.5 ${
+              className={`rounded-md px-1 text-[32px] leading-none outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#e23744]/40 ${
                 rating !== null && star <= rating
-                  ? "text-[#b45309]"
-                  : "text-[#d8d2c6] hover:text-[#c9bfae]"
+                  ? "text-[#e23744]"
+                  : "text-[#dcdcdc] hover:text-[#eab0b5]"
               }`}
             >
               ★
             </button>
           ))}
         </div>
+        <p className="mt-2 text-sm text-[#8f8f8f]">
+          {rating === null
+            ? "Tap a star"
+            : `${rating} out of 5`}
+        </p>
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-3 text-sm font-medium text-[#1a1917]">Your comment</h2>
+        <h2 className="mb-3 text-sm font-semibold text-[#1c1c1c]">Your comment</h2>
         <textarea
           value={comment}
           onChange={(event) => setComment(event.target.value)}
           placeholder="What did you think?"
-          className="w-full min-h-[120px] resize-none rounded-lg border border-[#e8e3da] bg-white p-4 text-[15px] text-[#1a1917] outline-none placeholder:text-[#c9bfae] focus:border-[#b45309]"
+          className="w-full min-h-[130px] resize-none rounded-xl border border-[#e9e9e9] bg-white p-4 text-[15px] leading-relaxed text-[#1c1c1c] outline-none placeholder:text-[#bcbcbc] focus:border-[#e23744]"
         />
       </section>
 
       {error && (
-        <p className="mt-6 rounded-lg border border-[#b45309] bg-[#fdf7ee] px-4 py-3 text-sm text-[#1a1917]">
+        <p
+          role="alert"
+          className="mt-6 rounded-xl border border-[#fbd3d6] bg-[#fff7f7] px-4 py-3 text-sm text-[#1c1c1c]"
+        >
           {error}
         </p>
       )}
@@ -111,10 +122,19 @@ export default function ReviewPage() {
         type="button"
         onClick={submit}
         disabled={!canSubmit}
-        className="mt-8 w-full rounded-lg bg-[#1a1917] py-3.5 text-[15px] font-medium text-[#faf9f7] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#2b2a27]"
+        className="mt-8 w-full rounded-lg bg-[#e23744] py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-[#c92734] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {submitting ? "Submitting…" : "Submit review"}
       </button>
+
+      <p className="mt-6 text-center">
+        <Link
+          href={`/restaurant/${id}`}
+          className="text-sm text-[#8f8f8f] underline-offset-4 hover:text-[#1c1c1c] hover:underline"
+        >
+          ← Back to reviews
+        </Link>
+      </p>
     </main>
   );
 }

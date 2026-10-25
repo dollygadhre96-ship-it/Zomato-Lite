@@ -6,7 +6,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import Stars from "@/lib/stars";
 import type { RestaurantResponse, Review } from "@/lib/types";
+
+const CLICKABLE = "text-sm font-medium text-[#e23744] hover:text-[#c92734] underline-offset-4 hover:underline";
+const CARD =
+  "rounded-2xl border border-[#e9e9e9] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]";
+const RED_BUTTON =
+  "inline-flex items-center justify-center gap-2 rounded-lg bg-[#e23744] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#c92734]";
 
 export default function RestaurantPage() {
   const params = useParams<{ id: string }>();
@@ -43,38 +50,23 @@ export default function RestaurantPage() {
       month: "short",
     });
 
-  const ReviewRow = ({ review, isLatest = false }: { review: Review; isLatest?: boolean }) => (
-    <li
-      className={
-        isLatest
-          ? "rounded-xl border-l-4 border-l-[#b45309] border border-[#e8e3da] bg-white p-5"
-          : "py-5 px-1"
-      }
-    >
-      {isLatest && (
-        <p className="mb-2 text-[11px] font-semibold tracking-widest text-[#b45309] uppercase">
-          Latest
-        </p>
-      )}
-      <p className="text-lg text-[#1a1917]">{review.comment}</p>
-      <p className="mt-2 text-sm text-[#8a8378]">
-        {review.rating} stars · {readableDate(review.createdAt)}
-      </p>
-    </li>
-  );
-
   if (state.phase === "loading") {
     return (
-      <main className="mx-auto max-w-[560px] px-6 py-16">
-        <p className="text-[#8a8378]">Loading…</p>
+      <main className="mx-auto max-w-[640px] px-5 py-24">
+        <p className="text-sm text-[#8f8f8f]">Loading…</p>
       </main>
     );
   }
 
   if (state.phase === "error") {
     return (
-      <main className="mx-auto max-w-[560px] px-6 py-16">
-        <p className="text-[#8a8378]">This restaurant could not be found.</p>
+      <main className="mx-auto max-w-[640px] px-5 py-24">
+        <p className="text-sm font-medium text-[#1c1c1c]">
+          This restaurant could not be found.
+        </p>
+        <p className="mt-2 text-sm text-[#8f8f8f]">
+          Check the address and try again.
+        </p>
       </main>
     );
   }
@@ -83,25 +75,25 @@ export default function RestaurantPage() {
   const hasReviews = data.totalReviews > 0;
 
   return (
-    <main className="mx-auto max-w-[560px] min-h-screen px-6 py-14">
-      {/* 1. Name */}
-      <h1 className="text-2xl font-semibold tracking-tight text-[#1a1917]">
-        {data.name}
-      </h1>
-      <p className="mt-1 text-sm text-[#8a8378]">
-        {data.cuisine} · {data.area}
-      </p>
+    <main className="mx-auto max-w-[640px] min-h-screen px-5 pb-16 pt-12 sm:px-6">
+      {/* 1. Restaurant header */}
+      <header>
+        <h1 className="text-3xl font-bold tracking-tight text-[#1c1c1c] sm:text-[32px]">
+          {data.name}
+        </h1>
+        <p className="mt-1.5 text-sm text-[#8f8f8f]">
+          {data.cuisine} · {data.area}
+        </p>
+      </header>
 
       {!hasReviews && (
-        <section className="mt-10 rounded-xl border border-[#e8e3da] bg-white p-8 text-center">
-          <p className="text-[#1a1917]">No reviews yet.</p>
-          <p className="mt-2 text-sm text-[#8a8378]">
-            Be the first to review this place.
+        /* Empty state — invite the first review instead of showing nothing. */
+        <section className={`mt-10 p-8 sm:p-10 ${CARD}`}>
+          <p className="text-lg font-semibold text-[#1c1c1c]">No reviews yet</p>
+          <p className="mt-1 text-sm leading-relaxed text-[#8f8f8f]">
+            Be the first to share what you thought.
           </p>
-          <Link
-            href={`/review/${id}`}
-            className="mt-5 inline-block text-sm font-medium text-[#b45309] underline underline-offset-4"
-          >
+          <Link href={`/review/${id}`} className={`mt-6 ${RED_BUTTON} w-full sm:w-auto`}>
             Write the first review
           </Link>
         </section>
@@ -109,32 +101,60 @@ export default function RestaurantPage() {
 
       {hasReviews && (
         <>
-          {/* 2. The average, big. Backend/computed — printed as received, untouched. */}
-          <section className="mt-10">
-            <div className="flex items-baseline gap-3">
+          {/* 2. Rating summary — the average, big and red. Backend/computed; printed as received. */}
+          <section aria-label="Rating summary" className="mt-10">
+            <div className="flex items-center gap-5 sm:gap-6">
               {/* THE LINE — receives 4.3, prints 4.3. No calculation in this file. */}
-              <span className="text-7xl font-semibold tracking-tight text-[#1a1917]">
+              <span className="text-6xl font-bold leading-none tracking-tight text-[#e23744] sm:text-[64px]">
                 {data.averageRating}
               </span>
-              <span className="text-sm text-[#8a8378]">
-                {data.totalReviews} {data.totalReviews === 1 ? "review" : "reviews"}
-              </span>
+              <div className="h-12 w-px bg-[#e9e9e9]" aria-hidden />
+              <div>
+                <p className="text-sm font-semibold text-[#1c1c1c]">
+                  {data.totalReviews} {data.totalReviews === 1 ? "review" : "reviews"}
+                </p>
+                <p className="mt-0.5 text-sm text-[#8f8f8f]">From customers</p>
+              </div>
             </div>
           </section>
 
-          {/* 3. Latest review, highlighted — recency is what people trust. */}
-          <section className="mt-10">
+          {/* 3. Latest review — recency is what people trust, so it sits apart. */}
+          <section aria-label="Latest review" className="mt-10">
             <ul>
-              <ReviewRow review={data.latestReview!} isLatest />
+              <li className={`p-5 sm:p-6 ${CARD}`}>
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#e23744]">
+                  Latest review
+                </p>
+                <Stars rating={data.latestReview!.rating} />
+                <p className="mt-3 text-base leading-relaxed text-[#1c1c1c] sm:text-lg">
+                  {data.latestReview!.comment}
+                </p>
+                <p className="mt-3 text-sm text-[#8f8f8f]">
+                  {readableDate(data.latestReview!.createdAt)}
+                </p>
+              </li>
             </ul>
           </section>
 
-          {/* 4. The rest, newest first, plain list. (The API already excluded the latest.) */}
-          <section className="mt-10">
-            <h2 className="mb-2 text-xl font-semibold text-[#1a1917]">Reviews</h2>
-            <ul className="divide-y divide-[#e8e3da]">
+          {/* 4. Older reviews, newest first, easy to scan. */}
+          <section className="mt-12">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-lg font-semibold text-[#1c1c1c]">All reviews</h2>
+              <span className="text-sm text-[#8f8f8f]">
+                {data.totalReviews} {data.totalReviews === 1 ? "review" : "reviews"}
+              </span>
+            </div>
+            <ul className="mt-1 divide-y divide-[#e9e9e9]">
               {data.reviews.map((review) => (
-                <ReviewRow key={review.id} review={review} />
+                <li key={review.id} className="py-5">
+                  <Stars rating={review.rating} />
+                  <p className="mt-2.5 text-[15px] leading-relaxed text-[#1c1c1c]">
+                    {review.comment}
+                  </p>
+                  <p className="mt-2 text-sm text-[#8f8f8f]">
+                    {readableDate(review.createdAt)}
+                  </p>
+                </li>
               ))}
             </ul>
           </section>
@@ -142,14 +162,14 @@ export default function RestaurantPage() {
       )}
 
       {/* 5. The invitation */}
-      <div className="mt-14 border-t border-[#e8e3da] pt-8">
+      <footer className="mt-14 border-t border-[#e9e9e9] pt-8">
         <Link
           href={`/review/${id}`}
-          className="text-sm font-medium text-[#b45309] underline underline-offset-4"
+          className={hasReviews ? RED_BUTTON : CLICKABLE}
         >
-          Write a review →
+          Write a review
         </Link>
-      </div>
+      </footer>
     </main>
   );
 }
